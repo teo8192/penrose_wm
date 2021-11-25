@@ -1,17 +1,19 @@
 #[macro_use]
 extern crate penrose;
 
-use std::fs::File;
+use std::{fs::File, process::Command};
 
 use penrose::{
+    Backward, Config, Forward, Less, More, Result, WindowManager,
+    __test_helpers::XConn,
     core::{
         helpers::index_selectors,
+        hooks::Hooks,
         layout::{monocle, side_stack},
-        Layout,
+        Hook, Layout,
     },
     logging_error_handler,
     xcb::new_xcb_backed_window_manager,
-    Backward, Config, Forward, Less, More,
 };
 
 use simplelog::{LevelFilter, WriteLogger};
@@ -21,6 +23,27 @@ use log::error;
 const BAR_HEIGHT: usize = 16;
 
 // const FONT: &str = "Nerd Font Inconsolata";
+
+pub struct StartupScript {
+    path: String,
+}
+impl StartupScript {
+    pub fn new(s: impl Into<String>) -> Self {
+        Self { path: s.into() }
+    }
+}
+impl<X: XConn> Hook<X> for StartupScript {
+    fn startup(&mut self, _: &mut WindowManager<X>) -> Result<()> {
+        Command::new("sh")
+            .arg("-c")
+            .arg(&self.path)
+            .spawn()
+            .map(|_| ())
+            .unwrap();
+
+        Ok(())
+    }
+}
 
 fn main() -> penrose::Result<()> {
     // Initialise the logger (use LevelFilter::Debug to enable debug logging)
@@ -45,9 +68,13 @@ fn main() -> penrose::Result<()> {
         .gap_px(0)
         .focused_border("#005577")?
         .bar_height(BAR_HEIGHT as u32)
-        .floating_classes(vec!["dmenu", "dunst"])
+        .floating_classes(vec!["dmenu", "dunst", "polybar"])
         .build()
         .expect("failed to build config");
+
+    let hooks: Hooks<_> = vec![Box::new(StartupScript::new(
+        "/home/teo/.config/polybar/launch.sh",
+    ))];
 
     let key_bindings = gen_keybindings! {
         "M-j" => run_internal!(cycle_client, Forward);
@@ -78,7 +105,7 @@ fn main() -> penrose::Result<()> {
         };
     };
 
-    let mut wm = new_xcb_backed_window_manager(config, vec![], logging_error_handler())?;
+    let mut wm = new_xcb_backed_window_manager(config, hooks, logging_error_handler())?;
     if let Err(e) = wm.grab_keys_and_run(key_bindings, map! {}) {
         error!("Failed to grab keys and run: {}", e);
         Err(e)
