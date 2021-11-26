@@ -89,8 +89,6 @@ fn main() -> penrose::Result<()> {
         "M-d" => run_internal!(update_max_main, Less);
         "M-l" => run_internal!(update_main_ratio, More);
         "M-h" => run_internal!(update_main_ratio, Less);
-        "M-space" => run_external!("dmenu_run");
-        "M-Return" => run_external!("alacritty");
         "M-S-q" => run_internal!(exit);
 
         // screen management
