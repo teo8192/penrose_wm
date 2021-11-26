@@ -68,7 +68,7 @@ fn main() -> penrose::Result<()> {
         .gap_px(0)
         .focused_border("#005577")?
         .bar_height(BAR_HEIGHT as u32)
-        .floating_classes(vec!["dmenu", "dunst", "polybar"])
+        .floating_classes(vec!["dmenu", "dunst"])
         .build()
         .expect("failed to build config");
 
